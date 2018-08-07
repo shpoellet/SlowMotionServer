@@ -1,0 +1,20 @@
+{
+  "name": "SlowMotionServer",
+  "version": "1.0.0",
+  "description": "Slow Motion Booth processing server",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shpoellet/SlowMotionServer.git"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^2.3.0"
+  },
+  "devDependencies": {
+    "electron": "^2.0.6"
+  }
+}
