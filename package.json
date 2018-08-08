@@ -12,7 +12,8 @@
     "url": "https://github.com/shpoellet/SlowMotionServer.git"
   },
   "dependencies": {
-    "ffmpeg-static": "^2.3.0"
+    "ffmpeg-static": "^2.3.0",
+    "npm": "^6.3.0"
   },
   "devDependencies": {
     "electron": "^2.0.6"
