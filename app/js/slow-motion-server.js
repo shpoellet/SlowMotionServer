@@ -18,32 +18,54 @@ var fs = require('fs');
 var http = require('http');
 var path = require('path');
 
-// function (req, res) {
-//   res.writeHead(200, {'Content-Type': 'text/html'});
-//   res.write('Hello World!');
-//   res.end();
-// }
+var events = require('events').EventEmitter;
+var EventEmitter = new events.EventEmitter();
 
 
 
-function downloadFile(req, res)
+function processRequest(req, res)
 {
+  if(req.url == '/connect'){
+    //this is a connect request
+    res.write('connected');
+    res.end();
+  }
+  else if(req.headers['content-type'] && req.headers['content-type']=='video/mp4'){
+    //incoming video file
+    console.log('Incoming File');
+    var filePath = path.basename(req.url);
+    var file =  fs.createWriteStream(filePath);
 
-  console.log("request")
-  console.log(req.headers);
-  var filePath = path.basename(req.url);
-  var file =  fs.createWriteStream(filePath);
+    req.pipe(file);
+    req.on('end', function(){
+        res.end();
+        console.log("Download Complete")
+        EventEmitter.emit('newFile', req.url);
+    })
+  }
+  else{
+    // not a connect or a video file so close the response and ignore it
+    res.end();
+  }
 
 
-  req.pipe(file);
-  req.on('end', function(){
-      res.writeHead(200, {'Content-Type': 'text/html'});
-      res.write('Hello World!');
-      res.end();
-      console.log("done")
-  })
+
+  // console.log("request")
+  // console.log(req.url)
+  // console.log(req.headers);
+  // var filePath = path.basename(req.url);
+  // var file =  fs.createWriteStream(filePath);
+  //
+  //
+  // req.pipe(file);
+  // req.on('end', function(){
+  //     // res.writeHead(200, {'Content-Type': 'text/html'});
+  //     // res.write('Hello World!');
+  //     res.end();
+  //     console.log("done")
+  // })
 }
 
 
 
-http.createServer(downloadFile).listen(3000);
+http.createServer(processRequest).listen(3000);
