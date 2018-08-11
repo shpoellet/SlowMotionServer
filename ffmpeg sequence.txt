@@ -1,0 +1,27 @@
+convert start and end to mp4 and then to stream
+
+ffmpeg -y -i src/start.mp4 -f mp4 -vcodec libx264 -acodec aac -s 1280x720 -r 24 intermediate/ends/intro.mp4
+
+ffmpeg -i intermediate/ends/intro.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate/ends/intro.ts
+
+ffmpeg -y -i src/end.mpeg -f mp4 -vcodec libx264 -acodec aac -s 1280x720 -r 24 intermediate/ends/exit.mp4
+
+ffmpeg -i intermediate/ends/exit.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate/ends/exit.ts
+
+
+trim and convert camera video
+
+ffmpeg -y -t 1 -i src/00000100.mp4 -f mp4 -vcodec libx264 -acodec aac -s 1280x720 -r 24 intermediate/chunk1.mp4
+ffmpeg -y -ss 1 -t 0.5 -i src/00000100.mp4 -f mp4 -vcodec libx264 -acodec aac -s 1280x720 -r 24 -filter:v "setpts=10*PTS" intermediate/chunk2.mp4
+ffmpeg -y -ss 1.5 -i src/00000100.mp4 -f mp4 -vcodec libx264 -acodec aac -s 1280x720 -r 24 intermediate/chunk3.mp4
+
+
+
+ffmpeg -i intermediate/chunk1.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate/chunk1.ts
+ffmpeg -i intermediate/chunk2.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate/chunk2.ts
+ffmpeg -i intermediate/chunk3.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate/chunk3.ts
+
+
+ffmpeg -y -i "concat:intermediate/ends/intro.ts|intermediate/chunk1.ts|intermediate/chunk2.ts|intermediate/chunk3.ts|intermediate/ends/exit.ts" -c copy -bsf:a aac_adtstoasc output.mp4
+
+ffmpeg -y -i output.mp4 -i src/bensound-funkyelement.mp3 -c:v copy -map 0:v:0 -map 1:a:0 -shortest new.mp4

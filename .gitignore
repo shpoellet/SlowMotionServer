@@ -62,3 +62,9 @@ typings/
 
 #media files
 *.mp4
+*.mov
+*.mpeg
+*.mp3
+*.ts
+
+ffmpeg.exe
