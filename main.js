@@ -58,6 +58,7 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
   function runMain(){
   	console.log("start");
   	var SlowMotionServer = require('./app/js/slow-motion-server.js');
+    SlowMotionServer.init(win);
   	// SlowMotionBooth.init(win);
 
   }

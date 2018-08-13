@@ -1,1 +1,74 @@
-hello world!
+<!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <link rel="stylesheet" type="text/css" href="css/index.css">
+    	<title>Slow Motion Booth</title>
+    </head>
+    <body>
+      <div id="title_box">
+  			Slow Motion Server
+  		</div>
+      <div class="status_box" id="Server_status">
+  			Settings
+        <div class="settings_graphic"></div>
+  		</div>
+      <div class="status_box" id="status_1">
+
+  		</div>
+      <div class="status_box" id="status_2">
+
+  		</div>
+      <div class="status_box" id="status_3">
+
+  		</div>
+
+
+      <!-- home page -->
+      <div class="main_pane" id="home_pane">
+
+      </div>
+
+      <!-- Camera Settins Page -->
+      <div class="main_pane settings_pane" id="server_settings_pane">
+        <div class="settings_title">Server Settings</div>
+        <div class="settings_close_button" id="server_close_button">Close</div>
+        <div class="settings_content">
+          Intro Video:
+          <div class="file_name" id="intro_file_name">Not Set</div>
+          <br>
+          <button type="button" class="file_button" id="select_intro_button">Choose File</button>
+          <br><br>
+          Exit Video:
+          <div class="file_name" id="exit_file_name">Not Set</div>
+          <br>
+          <button type="button" class="file_button" id="select_exit_button">Choose File</button>
+          <br><br>
+          Slow Motion Times<br>
+          <div id="timeSettings">
+            Delay:
+            <input type="number" class="time_input" id="delay_time">&nbsp
+            Duration:
+            <input type="number" class="time_input" id="duration_time">&nbsp
+            Stretch:
+            <input type="number" class="time_input" id="stretch_length">&nbsp
+            <button type="button" class="settings_button" id="save_time_button">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- alert pane -->
+      <div class="error_pane" id="alert_pane">
+        <div id="alert_message">
+          Alert Message
+        </div>
+        <div class="alert_option" id="alert_button">OK</div>
+      </div>
+
+    </body>
+
+    <script>
+      // You can also require other files to run in this process
+      require('./js/index.js')
+    </script>
+  </html>
