@@ -9,25 +9,39 @@ const {ipcMain} = require('electron');
 
 var Window;
 
-var introSrcPath = null;
-var exitSrcPath = null;
+var introSrcPath = 'Not Set';
+var exitSrcPath = 'Not Set';
+var musicSrcPath = 'Not Set';
 
 var introSet = false;
 var exitSet = false;
+var musicSet = false;
 
 var introConverting = false;
 var exitConverting = false;
+var musicConverting = false;
+
+var exportPath = 'export/';
+var exportName = 'GBPAC_Slow_Motion_';
+
+var delayTime = 1;
+var durationTime = 0.5;
+var stretchLength = 10;
 
 function setIntroVideo(fileSrc){
   introSet = false;
   introConverting = true;
+  introSrcPath = 'Converting';
   Window.webContents.send('setIntroFile', 'Converting: ' + fileSrc);
+  guiLog('Converting Intro Video');
   convertToMP4(fileSrc, 'intermediate/ends/intro.mp4', null, null, null, function(err, src, dst){
     if(err){
       console.log("Failed to convert intro to mp4");
       introSet=false;
       introConverting=false;
+      introSrcPath = 'Not Set';
       Window.webContents.send('setIntroFile', 'Conversion Failed');
+      guiLog('Convert Intro Video Failed');
     }
     else{
       convertToStream(dst, 'intermediate/ends/intro.ts', function(err, src, dst){
@@ -35,7 +49,9 @@ function setIntroVideo(fileSrc){
           console.log("Failed to convert intro to stream");
           introSet=false;
           introConverting=false;
+          introSrcPath = 'Not Set';
           Window.webContents.send('setIntroFile', 'Conversion Failed');
+          guiLog('Convert Intro Video Failed');
         }
         else{
           console.log("Intro conversion complete");
@@ -43,6 +59,7 @@ function setIntroVideo(fileSrc){
           introConverting=false;
           introSrcPath = dst;
           Window.webContents.send('setIntroFile', fileSrc);
+          guiLog('Convert Intro Video Complete');
         }
       });
     }
@@ -52,13 +69,17 @@ function setIntroVideo(fileSrc){
 function setExitVideo(fileSrc){
   exitSet = false;
   exitConverting = true;
+  exitSrcPath = 'Converting';
+  guiLog('Converting Exit Video');
   Window.webContents.send('setExitFile', 'Converting: ' + fileSrc);
   convertToMP4(fileSrc, 'intermediate/ends/exit.mp4', null, null, null, function(err, src, dst){
     if(err){
       console.log("Failed to convert exit to mp4");
       exitSet=false;
       exitConverting=false;
+      exitSrcPath = 'Not Set'
       Window.webContents.send('setExitFile', 'Conversion Failed');
+      guiLog('Convert Exit Video Failed');
     }
     else{
       convertToStream(dst, 'intermediate/ends/exit.ts', function(err, src, dst){
@@ -66,7 +87,9 @@ function setExitVideo(fileSrc){
           console.log("Failed to convert exit to stream");
           exitSet=false;
           exitConverting=false;
+          exitSrcPath = 'Not Set'
           Window.webContents.send('setExitFile', 'Conversion Failed');
+          guiLog('Convert Exit Video Failed');
         }
         else{
           console.log("Exit conversion complete");
@@ -74,8 +97,35 @@ function setExitVideo(fileSrc){
           exitConverting=false;
           exitSrcPath = dst;
           Window.webContents.send('setExitFile', fileSrc);
+          guiLog('Convert Exit Video Complete');
         }
       });
+    }
+  });
+}
+
+function setMusic(fileSrc){
+  musicSet = false;
+  musicConverting = true;
+  musicSrcPath = 'Converting';
+  guiLog('Converting Music');
+  Window.webContents.send('setMusicFile', 'Converting: ' + fileSrc);
+  convertToMP4(fileSrc, 'intermediate/music.WAV', null, null, null, function(err, src, dst){
+    if(err){
+      console.log("Failed to convert music to WAV");
+      musicSet=false;
+      musicConverting=false;
+      musicSrcPath = 'Not Set'
+      Window.webContents.send('setMusicFile', 'Conversion Failed');
+      guiLog('Convert Music Failed');
+    }
+    else{
+      console.log("Music conversion complete");
+      musicSet = true;
+      musicConverting = false;
+      musicSrcPath = dst;
+      Window.webContents.send('setMusicFile', fileSrc);
+      guiLog('Convert Music Complete');
     }
   });
 }
@@ -125,7 +175,6 @@ function assembleVideo(srcName, dst, callback){
             // '|intermediate/' +srcName + '_chunk2.ts' + //chunk2
             // '|intermediate/ends/exit.ts"' + //exit video
 
-
   exec(cmd, function(error, stdout, stderr){
     if(error){
       console.log('Assembly failed: ' + error);
@@ -135,15 +184,37 @@ function assembleVideo(srcName, dst, callback){
 
 }
 
+function replaceAudio(srcName, callback){
+  cmd = 'ffmpeg -y -i intermediate/' + srcName + '_assembeled.mp4 -i ' + musicSrcPath + ' -c:v copy -map 0:v:0 -map 1:a:0 -shortest ' + exportPath + exportName + srcName + '.mp4';
+  exec(cmd, function(error, stdout, stderr){
+    if(error){
+      console.log('Replace Audio failed: ' + error);
+    }
+    callback && callback(error);
+  })
+}
+
+function convertToWAV(src, dst, callback){
+  var cmd = ffmpeg.path + ' -y -i ' + src + ' -c:a pcm_s16le ' + dst;
+  exec(cmd, function(error, stdout, stderr){
+    if(error){
+      console.log('Convert to WAV failed: ' + error);
+    }
+    callback && callback(error, src, dst);
+  })
+}
+
+
 ////////////////////////////////
 //processSlowVideo
 ////////////////////////////////
 //will process the video to slow down the middle and add the into and exit
 function processSlowVideo(src, leadTime, slowTime, stretch){
+
   var chunkStates = ['notReady', 'notReady', 'notReady'];
   var srcName = path.parse(src).name;
   console.log(srcName + ': Start Processing');
-
+  guiLog('Video Processing Started: '+srcName);
   //convert chunk 0
   convertToMP4(src, 'intermediate/'+srcName+'_chunk0.mp4', null, leadTime, null, function(err, src, dst){
     if(err){
@@ -221,6 +292,15 @@ function processSlowVideo(src, leadTime, slowTime, stretch){
         }
         else{
           console.log(srcName + ': Assembly Complete');
+          replaceAudio(srcName, function(err){
+            if(err){
+
+            }
+            else{
+              console.log(srcName + ': Processing Complete');
+              guiLog('Video Processing Complete: ' + srcName);
+            }
+          })
         }
       });
     }
@@ -228,6 +308,7 @@ function processSlowVideo(src, leadTime, slowTime, stretch){
     if(failed){
       clearInterval(pTick);
       console.log('video conversion failed')
+      guiLog('Video Conversion Failed: ' + srcName);
     }
 
   }
@@ -235,73 +316,6 @@ function processSlowVideo(src, leadTime, slowTime, stretch){
   var pTick = setInterval(processTick, 100);
 
 }
-
-// processSlowVideo('src/00000100.mp4', 1, 0.5, 10);
-
-
-// convertToMP4('src/start.mp4', 'intermediate/ends/intro.mp4', null, null, null, function(err, src, dst){
-//   convertToStream(dst, 'intermediate/ends/intro.mp4', function(err, src2, dst2){
-//     console.log('stream done')
-//   });
-// });
-// convertToMP4('src/start.mp4', 'intermediate/ends/intro.mp4', null, 1, null, null);
-// convertToMP4('src/start.mp4', 'intermediate/ends/intro.mp4', 1, .5, 10, null);
-// convertToMP4('src/start.mp4', 'intermediate/ends/intro.mp4', 1.5, null, null, null);
-
-
-
-
-
-
-
-// var cmdStart = ffmpeg.path + ' -i start.mov -f mp4 -vcodec libx264 -acodec aac -s 1280x720 -r 24 -y intro.mp4';
-// var cmdEnd = ffmpeg.path + ' -i end.mpeg -f mp4 -vcodec libx264 -acodec aac -s 1280x720 -r 24 -y exit.mp4';
-//
-// exec(cmdStart, function(error, stdout, stderr){
-//   if(error == null){
-//     console.log("good run")
-//   }
-//   else{
-//     console.log(error)
-//   }
-// })
-//
-//
-//
-// exec(cmdEnd, function(error, stdout, stderr){
-//   if(error == null){
-//     console.log("good run")
-//   }
-//   else{
-//     console.log(error)
-//   }
-// })
-
-
-// function convert(filePath){
-//   // var cmd1 = ffmpeg.path + ' -i '+ filePath + ' -c copy -bsf:v h264_mp4toannexb -f mpegts intermediate1.ts';
-//
-//   var cmd1 = ffmpeg.path + ' -i ' + filePath + ' -f mp4 -vcodec libx264 -acodec aac -s 1280x720 -r 24 -y out.mp4';
-//   exec(cmd1, function(error, stdout, stderr){
-//     if(error == null){
-//       console.log("good run")
-//       // var cmd2 = ffmpeg.path + ' -i intro.mp4 -i out.mp4 -i exit.mp4 -filter_complex "[0:v:0][0:a:0][1:v:0][1:a:0][2:v:0][2:a:0]concat=n=3:v=1:a=1[outv][outa]" -map "[outv]" -map "[outa]" output.mp4'
-//       // exec(cmd1, function(error, stdout, stderr){
-//       //   if(error == null){
-//       //     console.log("done")
-//       //   }
-//       //   else{
-//       //     console.log(error)
-//       //   }
-//       // })
-//
-//     }
-//     else{
-//       console.log(error)
-//     }
-//   })
-// }
-
 
 function processRequest(req, res)
 {
@@ -313,6 +327,7 @@ function processRequest(req, res)
   else if(req.headers['content-type'] && req.headers['content-type']=='video/mp4'){
     //incoming video file
     console.log('Incoming File');
+    guiLog('Incoming File: ' + path.basename(req.url));
     var filePath = 'src/'+path.basename(req.url);
     var file =  fs.createWriteStream(filePath);
 
@@ -320,44 +335,46 @@ function processRequest(req, res)
     req.on('end', function(){
         res.end();
         console.log("Download Complete")
+        guiLog('Received File: ' + path.basename(req.url));
         EventEmitter.emit('newFile', req.url);
         if(introSet & exitSet){
-          processSlowVideo(filePath, 1, 0.5, 10);
+          if(musicSet){
+            processSlowVideo(filePath, 1, 0.5, 10);
+          }
+          else{
+            Window.webContents.send('alert', 'Music not set.');
+            guiLog('Could not process video: Music not set');
+          }
         }
         else{
           Window.webContents.send('alert', 'Intro or Exit video not set.');
+          guiLog('Could not process video: Intro or Exit video not set')
         }
-
-
     })
   }
   else{
     // not a connect or a video file so close the response and ignore it
     res.end();
   }
-
-
-
-  // console.log("request")
-  // console.log(req.url)
-  // console.log(req.headers);
-  // var filePath = path.basename(req.url);
-  // var file =  fs.createWriteStream(filePath);
-  //
-  //
-  // req.pipe(file);
-  // req.on('end', function(){
-  //     // res.writeHead(200, {'Content-Type': 'text/html'});
-  //     // res.write('Hello World!');
-  //     res.end();
-  //     console.log("done")
-  // })
 }
 
+function pushSettingsToGui(){
+  Window.webContents.send('setIntroFile', introSrcPath);
+  Window.webContents.send('setExitFile', exitSrcPath);
+  Window.webContents.send('setMusicFile', musicSrcPath);
+  Window.webContents.send('setTimes', delayTime, durationTime, stretchLength);
+}
+
+
+function guiLog(value){
+  Window.webContents.send('log', value);
+}
 
 exports.init = function(item){
   Window = item;
   http.createServer(processRequest).listen(3000);
+  pushSettingsToGui();
+  guiLog('Server Started')
 }
 
 
@@ -379,4 +396,26 @@ ipcMain.on('exitFile', function(event, item){
   else{
     Window.webContents.send('alert', 'Intro Video Conversion alrady in process please wait.');
   }
+})
+
+ipcMain.on('musicFile', function(event, item){
+  if(!musicConverting){
+    setMusic(item);
+  }
+  else{
+    Window.webContents.send('alert', 'Music Conversion alrady in process please wait.');
+  }
+})
+
+ipcMain.on('setTimes', function(event, inDelay, inDur, inStretch){
+  console.log('Times Set')
+  delayTime = inDelay;
+  durationTime = inDur;
+  stretchLength = inStretch;
+  Window.webContents.send('setTimes', delayTime, durationTime, stretchLength);
+  guiLog('Times Set');
+})
+
+ipcMain.on('serverSettingsOpen', function(event){
+  pushSettingsToGui();
 })

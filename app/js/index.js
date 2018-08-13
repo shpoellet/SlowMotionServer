@@ -34,6 +34,20 @@ ipcRenderer.on('setExitFile', function(event, value){
   document.getElementById('exit_file_name').innerHTML = value;
 })
 
+ipcRenderer.on('setMusicFile', function(event, value){
+  document.getElementById('music_file_name').innerHTML = value;
+})
+
+ipcRenderer.on('setTimes', function(event, inDelay, inDur, inStretch){
+  document.getElementById('delay_time').value = inDelay;
+  document.getElementById('duration_time').value = inDur;
+  document.getElementById('stretch_length').value = inStretch;
+})
+
+ipcRenderer.on('log', function(event, value){
+  var current = document.getElementById('GUI_log').innerHTML;
+  document.getElementById('GUI_log').innerHTML = current + '<br>' + value;
+})
 //------------------------------------------------------------------------
 //Mouse Clicks
 
@@ -76,8 +90,48 @@ document.getElementById("select_exit_button").onclick = function(){
   });
 }
 
+document.getElementById("select_music_button").onclick = function(){
+  dialog.showOpenDialog(function (fileNames) {
+    if(fileNames === undefined) {
+      showAlert('No File Selected');
+    }
+    else {
+      ipcRenderer.send("musicFile", fileNames[0]);
+    }
+  });
+}
+
 document.getElementById("save_time_button").onclick = function(){
-    // var i;
+
+  var delayInput = parseFloat(document.getElementById('delay_time').value);
+  var durationInput = parseFloat(document.getElementById('duration_time').value);
+  var stretchInput = parseFloat(document.getElementById('stretch_length').value);
+
+  var validInput = true;
+
+  if(delayInput <= 0 || isNaN(delayInput)){
+    validInput = false;
+    document.getElementById('delay_time').value = '';
+  }
+
+  if(durationInput <= 0 || isNaN(durationInput)){
+    validInput = false;
+    document.getElementById('duration_time').value = '';
+  }
+
+  if(stretchInput <= 0 || isNaN(stretchInput)){
+    validInput = false;
+    document.getElementById('stretch_length').value = '';
+  }
+
+  if(validInput){
+    ipcRenderer.send('setTimes', delayInput, durationInput, stretchInput);
+  }
+  else {
+    showAlert('Invalid Time Settings')
+  }
+
+  // var i;
   // var input;
   // var validInput = true;
   // var ip = [0, 0, 0, 0];

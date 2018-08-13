@@ -8,7 +8,7 @@ process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 
   function createWindow () {
     // Create the browser window.
-    win = new BrowserWindow({width: 800, height: 480, useContentSize: true, show:false})
+    win = new BrowserWindow({width: 800, height: 550, useContentSize: true, show:false})
 
     // and load the index.html of the app.
     win.loadFile('app/index.html')
