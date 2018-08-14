@@ -6,12 +6,17 @@ var path = require('path');
 var events = require('events').EventEmitter;
 var EventEmitter = new events.EventEmitter();
 const {ipcMain} = require('electron');
+// var SaveFile = require('./save-file.js')
 
 var Window;
 
 var introSrcPath = 'Not Set';
 var exitSrcPath = 'Not Set';
 var musicSrcPath = 'Not Set';
+
+var introOriginal ='';
+var exitOriginal ='';
+var musicOriginal ='';
 
 var introSet = false;
 var exitSet = false;
@@ -27,6 +32,34 @@ var exportName = 'GBPAC_Slow_Motion_';
 var delayTime = 1;
 var durationTime = 0.5;
 var stretchLength = 10;
+
+// function saveData(){
+//   var data = [];
+//   data[0] = introOriginal;
+//   console.log(data[0])
+//   data[1] = exitOriginal;
+//   data[2] = musicOriginal;
+//   data[3] = delayTime;
+//   data[4] = durationTime;
+//   data[5] = stretchLength;
+//   SaveFile.saveToFile(data);
+// }
+//
+// function applySavedData(saveData){
+//   console.log('Applying settings from file')
+//   setIntroVideo(saveData[0]);
+//   console.log(saveData[0])
+//   console.log(saveData[1])
+//   console.log(saveData[2])
+//   // setExitVideo(saveData[1]);
+//   // setMusic(saveData[2]);
+//   delayTime = saveData[3];
+//   durationTime = saveData[4];
+//   stretchLength = saveData[5];
+//   pushSettingsToGui();
+//
+// }
+
 
 function setIntroVideo(fileSrc){
   introSet = false;
@@ -58,7 +91,9 @@ function setIntroVideo(fileSrc){
           introSet=true;
           introConverting=false;
           introSrcPath = dst;
+          introOriginal = fileSrc;
           Window.webContents.send('setIntroFile', fileSrc);
+          // saveData()
           guiLog('Convert Intro Video Complete');
         }
       });
@@ -96,7 +131,9 @@ function setExitVideo(fileSrc){
           exitSet=true;
           exitConverting=false;
           exitSrcPath = dst;
+          exitOriginal = fileSrc;
           Window.webContents.send('setExitFile', fileSrc);
+          // saveData()
           guiLog('Convert Exit Video Complete');
         }
       });
@@ -124,7 +161,9 @@ function setMusic(fileSrc){
       musicSet = true;
       musicConverting = false;
       musicSrcPath = dst;
+      musicOriginal = fileSrc;
       Window.webContents.send('setMusicFile', fileSrc);
+      // saveData()
       guiLog('Convert Music Complete');
     }
   });
@@ -374,6 +413,10 @@ exports.init = function(item){
   Window = item;
   http.createServer(processRequest).listen(3000);
   pushSettingsToGui();
+  // SaveFile.loadFromFile(applySavedData)
+  setIntroVideo('src/slowMoStart.mp4');
+  setExitVideo('src/slowMoExit.mp4');
+  setMusic('src/slowMoMusic.mp3');
   guiLog('Server Started')
 }
 
@@ -413,6 +456,7 @@ ipcMain.on('setTimes', function(event, inDelay, inDur, inStretch){
   durationTime = inDur;
   stretchLength = inStretch;
   Window.webContents.send('setTimes', delayTime, durationTime, stretchLength);
+  // saveData()
   guiLog('Times Set');
 })
 
