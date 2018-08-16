@@ -46,7 +46,10 @@ ipcRenderer.on('setTimes', function(event, inDelay, inDur, inStretch){
 
 ipcRenderer.on('log', function(event, value){
   var current = document.getElementById('GUI_log').innerHTML;
-  document.getElementById('GUI_log').innerHTML = current + '<br>' + value;
+  var logDIV = document.getElementById('GUI_log')
+  logDIV.innerHTML = current + '<br>' + value;
+  logDIV.scrollTop = logDIV.scrollHeight;
+
 })
 //------------------------------------------------------------------------
 //Mouse Clicks

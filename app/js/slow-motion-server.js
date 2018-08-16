@@ -61,6 +61,23 @@ var stretchLength = 10;
 // }
 
 
+function deleteFile(filename){
+  fs.unlink(filename, function (err) {
+    if (err) console.log('Server: Could not delete file: '+err);
+  })
+}
+
+function deleteIntermediateFiles(srcName){
+  deleteFile('src/' +srcName + '.mp4');
+  deleteFile('intermediate/' +srcName + '_chunk0.mp4');
+  deleteFile('intermediate/' +srcName + '_chunk1.mp4');
+  deleteFile('intermediate/' +srcName + '_chunk2.mp4');
+  deleteFile('intermediate/' +srcName + '_chunk0.ts');
+  deleteFile('intermediate/' +srcName + '_chunk1.ts');
+  deleteFile('intermediate/' +srcName + '_chunk2.ts');
+  deleteFile('intermediate/'+srcName+'_assembeled.mp4');
+}
+
 function setIntroVideo(fileSrc){
   introSet = false;
   introConverting = true;
@@ -88,6 +105,7 @@ function setIntroVideo(fileSrc){
         }
         else{
           console.log("Intro conversion complete");
+          deleteFile('intermediate/ends/intro.mp4');
           introSet=true;
           introConverting=false;
           introSrcPath = dst;
@@ -128,6 +146,7 @@ function setExitVideo(fileSrc){
         }
         else{
           console.log("Exit conversion complete");
+          deleteFile('intermediate/ends/exit.mp4');
           exitSet=true;
           exitConverting=false;
           exitSrcPath = dst;
@@ -199,7 +218,7 @@ function convertToStream(src, dst, callback){
 
 function assembleVideo(srcName, dst, callback){
   console.log(srcName + ': Assembly Started');
-  var cmd = 'ffmpeg -y -i "concat:' +
+  var cmd = ffmpeg.path + ' -y -i "concat:' +
             introSrcPath + //intro video
             '|intermediate/' +srcName + '_chunk0.ts' + //chunk0
             '|intermediate/' +srcName + '_chunk1.ts' + //chunk1
@@ -224,7 +243,7 @@ function assembleVideo(srcName, dst, callback){
 }
 
 function replaceAudio(srcName, callback){
-  cmd = 'ffmpeg -y -i intermediate/' + srcName + '_assembeled.mp4 -i ' + musicSrcPath + ' -c:v copy -map 0:v:0 -map 1:a:0 -shortest ' + exportPath + exportName + srcName + '.mp4';
+  cmd = ffmpeg.path + ' -y -i intermediate/' + srcName + '_assembeled.mp4 -i ' + musicSrcPath + ' -c:v copy -map 0:v:0 -map 1:a:0 -shortest ' + exportPath + exportName + srcName + '.mp4';
   exec(cmd, function(error, stdout, stderr){
     if(error){
       console.log('Replace Audio failed: ' + error);
@@ -327,7 +346,7 @@ function processSlowVideo(src, leadTime, slowTime, stretch){
       clearInterval(pTick);
       assembleVideo(srcName, 'intermediate/'+srcName+'_assembeled.mp4', function(err, dst){
         if(err){
-
+          deleteIntermediateFiles(srcName);
         }
         else{
           console.log(srcName + ': Assembly Complete');
@@ -339,6 +358,7 @@ function processSlowVideo(src, leadTime, slowTime, stretch){
               console.log(srcName + ': Processing Complete');
               guiLog('Video Processing Complete: ' + srcName);
             }
+            deleteIntermediateFiles(srcName);
           })
         }
       });
@@ -346,7 +366,8 @@ function processSlowVideo(src, leadTime, slowTime, stretch){
 
     if(failed){
       clearInterval(pTick);
-      console.log('video conversion failed')
+      console.log('video conversion failed');
+      deleteIntermediateFiles(srcName)
       guiLog('Video Conversion Failed: ' + srcName);
     }
 
@@ -378,7 +399,7 @@ function processRequest(req, res)
         EventEmitter.emit('newFile', req.url);
         if(introSet & exitSet){
           if(musicSet){
-            processSlowVideo(filePath, 1, 0.5, 10);
+            processSlowVideo(filePath, delayTime, durationTime, stretchLength);
           }
           else{
             Window.webContents.send('alert', 'Music not set.');
@@ -398,9 +419,9 @@ function processRequest(req, res)
 }
 
 function pushSettingsToGui(){
-  Window.webContents.send('setIntroFile', introSrcPath);
-  Window.webContents.send('setExitFile', exitSrcPath);
-  Window.webContents.send('setMusicFile', musicSrcPath);
+  Window.webContents.send('setIntroFile', introOriginal);
+  Window.webContents.send('setExitFile', exitOriginal);
+  Window.webContents.send('setMusicFile', musicOriginal);
   Window.webContents.send('setTimes', delayTime, durationTime, stretchLength);
 }
 
